@@ -200,3 +200,60 @@ async def get_estatisticas_auditoria(
             for acao, qtd in acoes_comuns
         ]
     }
+
+# Importações para Celery
+from app.tasks.tasks import process_audit_task
+from celery.result import AsyncResult
+
+@router.post("/processar/{audit_id}")
+async def process_audit_background(
+    audit_id: int,
+    session: Session = Depends(get_session),
+    current_user: Usuario = Depends(require_perfil("ROOT", "GESTOR", "AUDITOR"))
+):
+    """
+    Inicia o processamento de uma auditoria em background usando Celery.
+    Retorna o ID da tarefa para acompanhar o progresso.
+    """
+
+    # Verificar se a auditoria existe
+    audit = session.get(AuditoriaGlobal, audit_id)
+    if not audit:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Auditoria não encontrada"
+        )
+
+    # Disparar tarefa em background
+    task = process_audit_task.delay(audit_id)
+
+    return {
+        "message": "Processamento de auditoria iniciado em background",
+        "task_id": task.id,
+        "audit_id": audit_id,
+        "status_url": f"/auditoria/task/{task.id}"
+    }
+
+@router.get("/task/{task_id}")
+async def get_task_status(
+    task_id: str,
+    current_user: Usuario = Depends(require_perfil("ROOT", "GESTOR", "AUDITOR"))
+):
+    """
+    Verifica o status de uma tarefa em background.
+    """
+
+    task_result = AsyncResult(task_id)
+
+    response = {
+        "task_id": task_id,
+        "status": task_result.status,
+        "current": task_result.current,
+        "total": task_result.total,
+        "info": task_result.info
+    }
+
+    if task_result.failed():
+        response["error"] = str(task_result.result)
+
+    return response
