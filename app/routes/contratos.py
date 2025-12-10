@@ -3,6 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select
 from app.core.database import get_session
 from app.core.auth import get_current_user
+from app.core.guards import (
+    apply_tenant_filter,
+    check_tenant_access,
+    require_gestor_or_root,
+    TenantGuard
+)
 from app.models.contrato import Contrato, ContratoCreate, ContratoUpdate, ContratoRead
 from app.models.usuario import Usuario
 from datetime import datetime
@@ -17,17 +23,17 @@ async def create_contrato(
 ):
     """Cria novo contrato"""
     
-    # Verifica permissão
-    if current_user.perfil not in ["ROOT", "GESTOR"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Sem permissão para criar contrato"
-        )
+    # Apenas GESTOR ou ROOT podem criar contratos
+    require_gestor_or_root(current_user)
+    
+    # Valida e força entidade_id
+    data_dict = contrato_data.model_dump()
+    data_dict = TenantGuard.validate_tenant_on_create(data_dict, current_user)
     
     # Verifica se número do contrato já existe para a entidade
     statement = select(Contrato).where(
-        Contrato.entidade_id == contrato_data.entidade_id,
-        Contrato.numero_contrato == contrato_data.numero_contrato
+        Contrato.entidade_id == data_dict["entidade_id"],
+        Contrato.numero_contrato == data_dict["numero_contrato"]
     )
     if session.exec(statement).first():
         raise HTTPException(
@@ -35,7 +41,7 @@ async def create_contrato(
             detail="Contrato com este número já existe nesta entidade"
         )
     
-    contrato = Contrato(**contrato_data.model_dump())
+    contrato = Contrato(**data_dict)
     session.add(contrato)
     session.commit()
     session.refresh(contrato)
@@ -56,11 +62,12 @@ async def list_contratos(
     
     statement = select(Contrato)
     
-    # Filtros
+    # Aplica filtro de tenant (ROOT vê tudo, outros só da entidade)
+    statement = apply_tenant_filter(statement, Contrato, current_user)
+    
+    # Filtros adicionais
     if entidade_id:
         statement = statement.where(Contrato.entidade_id == entidade_id)
-    elif current_user.perfil != "ROOT" and current_user.entidade_id:
-        statement = statement.where(Contrato.entidade_id == current_user.entidade_id)
     
     if fornecedor_id:
         statement = statement.where(Contrato.fornecedor_id == fornecedor_id)
@@ -88,12 +95,8 @@ async def get_contrato(
             detail="Contrato não encontrado"
         )
     
-    # Verifica permissão
-    if current_user.perfil != "ROOT" and current_user.entidade_id != contrato.entidade_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Sem permissão para acessar este contrato"
-        )
+    # Verifica acesso ao tenant
+    check_tenant_access(contrato, current_user)
     
     return contrato
 
@@ -106,6 +109,9 @@ async def update_contrato(
 ):
     """Atualiza contrato"""
     
+    # Apenas GESTOR ou ROOT podem atualizar
+    require_gestor_or_root(current_user)
+    
     contrato = session.get(Contrato, contrato_id)
     if not contrato:
         raise HTTPException(
@@ -113,18 +119,8 @@ async def update_contrato(
             detail="Contrato não encontrado"
         )
     
-    # Verifica permissão
-    if current_user.perfil not in ["ROOT", "GESTOR"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Sem permissão para atualizar contrato"
-        )
-    
-    if current_user.perfil != "ROOT" and current_user.entidade_id != contrato.entidade_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Sem permissão para atualizar este contrato"
-        )
+    # Verifica acesso ao tenant
+    check_tenant_access(contrato, current_user)
     
     update_data = contrato_data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
@@ -146,6 +142,9 @@ async def delete_contrato(
 ):
     """Cancela contrato"""
     
+    # Apenas GESTOR ou ROOT podem cancelar
+    require_gestor_or_root(current_user)
+    
     contrato = session.get(Contrato, contrato_id)
     if not contrato:
         raise HTTPException(
@@ -153,18 +152,8 @@ async def delete_contrato(
             detail="Contrato não encontrado"
         )
     
-    # Verifica permissão
-    if current_user.perfil not in ["ROOT", "GESTOR"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Sem permissão para cancelar contrato"
-        )
-    
-    if current_user.perfil != "ROOT" and current_user.entidade_id != contrato.entidade_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Sem permissão para cancelar este contrato"
-        )
+    # Verifica acesso ao tenant
+    check_tenant_access(contrato, current_user)
     
     contrato.status = "CANCELADO"
     contrato.updated_at = datetime.utcnow()
