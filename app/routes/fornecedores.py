@@ -3,6 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select
 from app.core.database import get_session
 from app.core.auth import get_current_user
+from app.core.guards import (
+    apply_tenant_filter,
+    check_tenant_access,
+    require_gestor_or_root,
+    TenantGuard
+)
 from app.models.fornecedor import Fornecedor, FornecedorCreate, FornecedorUpdate, FornecedorRead
 from app.models.usuario import Usuario
 from datetime import datetime
@@ -17,17 +23,21 @@ async def create_fornecedor(
 ):
     """Cria novo fornecedor"""
     
-    # Verifica permissão
+    # Verifica permissão (ROOT, GESTOR ou APOIO)
     if current_user.perfil not in ["ROOT", "GESTOR", "APOIO"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Sem permissão para criar fornecedor"
         )
     
+    # Valida e força entidade_id
+    data_dict = fornecedor_data.model_dump()
+    data_dict = TenantGuard.validate_tenant_on_create(data_dict, current_user)
+    
     # Verifica se CNPJ/CPF já existe para a entidade
     if fornecedor_data.cnpj:
         statement = select(Fornecedor).where(
-            Fornecedor.entidade_id == fornecedor_data.entidade_id,
+            Fornecedor.entidade_id == data_dict["entidade_id"],
             Fornecedor.cnpj == fornecedor_data.cnpj
         )
         if session.exec(statement).first():
@@ -36,7 +46,7 @@ async def create_fornecedor(
                 detail="Fornecedor com este CNPJ já cadastrado nesta entidade"
             )
     
-    fornecedor = Fornecedor(**fornecedor_data.model_dump())
+    fornecedor = Fornecedor(**data_dict)
     session.add(fornecedor)
     session.commit()
     session.refresh(fornecedor)
@@ -58,11 +68,12 @@ async def list_fornecedores(
     
     statement = select(Fornecedor)
     
-    # Filtros
+    # Aplica filtro de tenant
+    statement = apply_tenant_filter(statement, Fornecedor, current_user)
+    
+    # Filtros adicionais
     if entidade_id:
         statement = statement.where(Fornecedor.entidade_id == entidade_id)
-    elif current_user.perfil != "ROOT" and current_user.entidade_id:
-        statement = statement.where(Fornecedor.entidade_id == current_user.entidade_id)
     
     if situacao_cadastral:
         statement = statement.where(Fornecedor.situacao_cadastral == situacao_cadastral)

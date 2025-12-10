@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select
 from app.core.database import get_session
 from app.core.auth import get_current_user, require_perfil
+from app.core.guards import check_tenant_access, require_gestor_or_root
 from app.models.cronograma_fisico_fin import CronogramaFisicoFin, CronogramaFisicoFinCreate, CronogramaFisicoFinUpdate, CronogramaFisicoFinRead
 from app.models.contrato import Contrato
 from app.models.usuario import Usuario
@@ -26,12 +27,8 @@ async def create_cronograma(
             detail="Contrato não encontrado"
         )
     
-    # Verifica permissão
-    if current_user.perfil == "GESTOR" and current_user.entidade_id != contrato.entidade_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Sem permissão para criar cronograma neste contrato"
-        )
+    # Verifica acesso ao tenant
+    check_tenant_access(contrato, current_user)
     
     cronograma = CronogramaFisicoFin(**cronograma_data.model_dump())
     session.add(cronograma)

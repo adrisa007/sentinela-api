@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select
 from app.core.database import get_session
 from app.core.auth import get_current_user, require_perfil
+from app.core.guards import require_root, RootGuard
 from app.models.entidade import Entidade, EntidadeCreate, EntidadeUpdate, EntidadeRead
 from app.models.usuario import Usuario
 from datetime import datetime

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select
 from app.core.database import get_session
 from app.core.auth import get_current_user
+from app.core.guards import check_tenant_access, require_fiscal_access
 from app.models.ocorrencia_fiscalizacao import OcorrenciaFiscalizacao, OcorrenciaFiscalizacaoCreate, OcorrenciaFiscalizacaoRead
 from app.models.contrato import Contrato
 from app.models.usuario import Usuario
@@ -18,6 +19,9 @@ async def create_ocorrencia(
 ):
     """Registra nova ocorrência de fiscalização"""
     
+    # Verifica permissão (fiscais, gestor ou ROOT)
+    require_fiscal_access(current_user)
+    
     # Verifica se contrato existe
     contrato = session.get(Contrato, ocorrencia_data.contrato_id)
     if not contrato:
@@ -26,18 +30,8 @@ async def create_ocorrencia(
             detail="Contrato não encontrado"
         )
     
-    # Verifica permissão
-    if current_user.perfil not in ["ROOT", "GESTOR", "FISCAL_TECNICO", "FISCAL_ADM"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Sem permissão para registrar ocorrência"
-        )
-    
-    if current_user.perfil in ["FISCAL_TECNICO", "FISCAL_ADM"] and current_user.entidade_id != contrato.entidade_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Sem permissão para registrar ocorrência neste contrato"
-        )
+    # Verifica acesso ao tenant
+    check_tenant_access(contrato, current_user)
     
     ocorrencia = OcorrenciaFiscalizacao(**ocorrencia_data.model_dump())
     session.add(ocorrencia)

@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select
 from app.core.database import get_session
 from app.core.auth import get_current_user, require_perfil
+from app.core.guards import check_tenant_access, require_gestor_or_root
 from app.models.penalidade import Penalidade, PenalidadeCreate, PenalidadeUpdate, PenalidadeRead
 from app.models.contrato import Contrato
 from app.models.usuario import Usuario
@@ -25,12 +26,8 @@ async def create_penalidade(
             detail="Contrato não encontrado"
         )
     
-    # Verifica permissão
-    if current_user.perfil == "GESTOR" and current_user.entidade_id != contrato.entidade_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Sem permissão para registrar penalidade neste contrato"
-        )
+    # Verifica acesso ao tenant
+    check_tenant_access(contrato, current_user)
     
     penalidade = Penalidade(**penalidade_data.model_dump())
     session.add(penalidade)

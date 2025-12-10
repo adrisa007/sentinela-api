@@ -3,6 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select
 from app.core.database import get_session
 from app.core.auth import get_current_user, require_perfil
+from app.core.guards import (
+    apply_tenant_filter,
+    check_tenant_access,
+    require_gestor_or_root,
+    TenantGuard
+)
 from app.models.usuario import Usuario, UsuarioCreate, UsuarioUpdate, UsuarioRead
 from app.core.security import get_password_hash
 from datetime import datetime
@@ -17,18 +23,16 @@ async def create_usuario(
 ):
     """Cria novo usuário"""
     
-    # Verifica permissões
-    if current_user.perfil == "GESTOR":
-        if usuario_data.entidade_id != current_user.entidade_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Sem permissão para criar usuário em outra entidade"
-            )
-        if usuario_data.perfil == "ROOT":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Sem permissão para criar usuário ROOT"
-            )
+    # Valida e força entidade_id
+    data_dict = usuario_data.model_dump(exclude={"senha"})
+    data_dict = TenantGuard.validate_tenant_on_create(data_dict, current_user)
+    
+    # GESTOR não pode criar ROOT
+    if current_user.perfil == "GESTOR" and usuario_data.perfil == "ROOT":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Sem permissão para criar usuário ROOT"
+        )
     
     # Verifica se email já existe
     statement = select(Usuario).where(Usuario.email == usuario_data.email)
@@ -47,7 +51,7 @@ async def create_usuario(
         )
     
     usuario = Usuario(
-        **usuario_data.model_dump(exclude={"senha"}),
+        **data_dict,
         senha_hash=get_password_hash(usuario_data.senha)
     )
     
@@ -71,7 +75,10 @@ async def list_usuarios(
     
     statement = select(Usuario)
     
-    # Filtros
+    # Aplica filtro de tenant
+    statement = apply_tenant_filter(statement, Usuario, current_user)
+    
+    # Filtros adicionais
     if entidade_id:
         statement = statement.where(Usuario.entidade_id == entidade_id)
     
@@ -80,10 +87,6 @@ async def list_usuarios(
     
     if ativo is not None:
         statement = statement.where(Usuario.ativo == ativo)
-    
-    # Se não for ROOT, mostra apenas usuários da mesma entidade
-    if current_user.perfil != "ROOT" and current_user.entidade_id:
-        statement = statement.where(Usuario.entidade_id == current_user.entidade_id)
     
     statement = statement.offset(skip).limit(limit)
     usuarios = session.exec(statement).all()

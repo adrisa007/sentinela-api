@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlmodel import Session, select
 from app.core.database import get_session
 from app.core.auth import get_current_user, require_perfil
+from app.core.guards import check_tenant_access, require_gestor_or_root
 from app.models.fiscal_designado import FiscalDesignado, FiscalDesignadoCreate, FiscalDesignadoRead
 from app.models.contrato import Contrato
 from app.models.usuario import Usuario
@@ -25,19 +26,15 @@ async def create_fiscal_designado(
             detail="Contrato não encontrado"
         )
     
+    # Verifica acesso ao tenant
+    check_tenant_access(contrato, current_user)
+    
     # Verifica se usuário existe
     usuario = session.get(Usuario, fiscal_data.usuario_id)
     if not usuario:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuário não encontrado"
-        )
-    
-    # Verifica permissão
-    if current_user.perfil == "GESTOR" and current_user.entidade_id != contrato.entidade_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Sem permissão para designar fiscal para este contrato"
         )
     
     # Verifica se já existe
