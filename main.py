@@ -3,7 +3,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import create_db_and_tables
 from app.core.middleware import AuditoriaMiddleware
-from app.routes import auth, entidades, usuarios, fornecedores, contratos
+from app.routes import (
+    auth, 
+    entidades, 
+    usuarios, 
+    fornecedores, 
+    contratos,
+    tipo_certidao,
+    certidoes,
+    fiscais,
+    ocorrencias,
+    cronogramas,
+    penalidades,
+    matriz_riscos,
+    auditoria
+)
 
 # Importar modelos para criar tabelas
 from app.models.entidade import Entidade
@@ -45,6 +59,14 @@ app.include_router(entidades.router)
 app.include_router(usuarios.router)
 app.include_router(fornecedores.router)
 app.include_router(contratos.router)
+app.include_router(tipo_certidao.router)
+app.include_router(certidoes.router)
+app.include_router(fiscais.router)
+app.include_router(ocorrencias.router)
+app.include_router(cronogramas.router)
+app.include_router(penalidades.router)
+app.include_router(matriz_riscos.router)
+app.include_router(auditoria.router)
 
 @app.on_event("startup")
 def on_startup():
