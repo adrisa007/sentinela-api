@@ -2,14 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tema corporate com cores oficiais do Sentinela */
-:root {
-  --rounded-btn: 0.5rem;
+/* Aplicar tema corporate por padrão */
+[data-theme="corporate"] {
+  --p: 0 48 135; /* #003087 */
+  --pf: 0 39 102; /* #002766 */
+  --pc: 255 255 255; /* #ffffff */
+  --s: 0 94 184; /* #005EB8 */
+  --sf: 0 70 135; /* #004687 */
+  --sc: 255 255 255; /* #ffffff */
+  --a: 0 150 57; /* #009639 */
+  --af: 0 110 43; /* #006E2B */
+  --ac: 255 255 255; /* #ffffff */
+  --n: 42 46 55; /* #2A2E37 */
+  --nf: 30 34 39; /* #1E2227 */
+  --nc: 248 250 252; /* #F8FAFC */
+  --b1: 255 255 255; /* #ffffff */
+  --b2: 248 250 252; /* #f8fafc */
+  --b3: 226 232 240; /* #e2e8f0 */
+  --bc: 30 41 59; /* #1e293b */
+  --in: 59 130 246; /* #3b82f6 */
+  --su: 16 185 129; /* #10b981 */
+  --wa: 245 158 11; /* #f59e0b */
+  --er: 239 68 68; /* #ef4444 */
 }
 
-/* Cor primária do Sentinela (azul governamental) */
-.theme-corporate {
-  primary: #003087;
-  "primary-focus": #002766;
-  "primary-content": #ffffff;
+/* Aplicar tema corporate ao body */
+body {
+  data-theme: corporate;
 }
