@@ -22,71 +22,59 @@ async def validar_fornecedor_pncp(
     Valida um fornecedor através do PNCP (Portal Nacional de Contratações Públicas).
     Verifica situação cadastral, regularidade e certidões.
     """
-    try:
-        # Valida CNPJ
-        if not cnpj or len(cnpj.replace(".", "").replace("-", "").replace("/", "")) != 14:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="CNPJ inválido. Deve conter 14 dígitos."
-            )
+    # Valida CNPJ
+    if not cnpj or len(cnpj.replace(".", "").replace("-", "").replace("/", "")) != 14:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="CNPJ inválido. Deve conter 14 dígitos."
+        )
 
-        # Faz validação no PNCP
-        resultado = await PNCPService.validar_fornecedor(cnpj)
+    # Faz validação no PNCP
+    resultado = await PNCPService.validar_fornecedor(cnpj)
 
-        if not resultado.get("validado", False):
-            return {
-                "status": "erro",
-                "cnpj": cnpj,
-                "validado": False,
-                "erro": resultado.get("erro", "Erro desconhecido"),
-                "fonte": "PNCP"
-            }
-
-        # Verifica se fornecedor já existe no sistema
-        cnpj_limpo = cnpj.replace(".", "").replace("-", "").replace("/", "")
-        fornecedor_existente = session.exec(
-            select(Fornecedor).where(
-                Fornecedor.cnpj == cnpj_limpo,
-                Fornecedor.entidade_id == current_user.entidade_id
-            )
-        ).first()
-
-        # Agenda sincronização em background se fornecedor existir
-        if fornecedor_existente:
-            # TODO: Implementar sincronização em background
-            # background_tasks.add_task(
-            #     sync_pncp_fornecedor,
-            #     fornecedor_existente.id,
-            #     current_user.id
-            # )
-            pass
-
+    if not resultado.get("validado", False):
         return {
-            "status": "sucesso",
+            "status": "erro",
             "cnpj": cnpj,
-            "validado": True,
-            "dados": {
-                "razao_social": resultado.get("razao_social", ""),
-                "nome_fantasia": resultado.get("nome_fantasia", ""),
-                "situacao_cadastral": resultado.get("situacao_cadastral", "ATIVO"),
-                "regularidade_geral": resultado.get("regularidade_geral", "REGULAR"),
-                "certidoes_vencidas": resultado.get("certidoes_vencidas", 0),
-                "impedimentos": resultado.get("impedimentos", [])
-            },
-            "fornecedor_existente": fornecedor_existente.id if fornecedor_existente else None,
+            "validado": False,
+            "erro": resultado.get("erro", "Erro desconhecido"),
             "fonte": "PNCP"
         }
 
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+    # Verifica se fornecedor já existe no sistema
+    cnpj_limpo = cnpj.replace(".", "").replace("-", "").replace("/", "")
+    fornecedor_existente = session.exec(
+        select(Fornecedor).where(
+            Fornecedor.cnpj == cnpj_limpo,
+            Fornecedor.entidade_id == current_user.entidade_id
         )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro interno: {str(e)}"
-        )
+    ).first()
+
+    # Agenda sincronização em background se fornecedor existir
+    if fornecedor_existente:
+        # TODO: Implementar sincronização em background
+        # background_tasks.add_task(
+        #     sync_pncp_fornecedor,
+        #     fornecedor_existente.id,
+        #     current_user.id
+        # )
+        pass
+
+    return {
+        "status": "sucesso",
+        "cnpj": cnpj,
+        "validado": True,
+        "dados": {
+            "razao_social": resultado.get("razao_social", ""),
+            "nome_fantasia": resultado.get("nome_fantasia", ""),
+            "situacao_cadastral": resultado.get("situacao_cadastral", "ATIVO"),
+            "regularidade_geral": resultado.get("regularidade_geral", "REGULAR"),
+            "certidoes_vencidas": resultado.get("certidoes_vencidas", 0),
+            "impedimentos": resultado.get("impedimentos", [])
+        },
+        "fornecedor_existente": fornecedor_existente.id if fornecedor_existente else None,
+        "fonte": "PNCP"
+    }
 
 @router.get("/fornecedor/{cnpj}/contratos")
 async def buscar_contratos_fornecedor_pncp(

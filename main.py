@@ -97,12 +97,12 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 return JSONResponse(status_code=403, content={"detail": "CSRF token inválido ou ausente."})
         return await call_next(request)
 
+# # app.add_middleware(CSRFMiddleware)
 app.add_middleware(CSRFMiddleware)
 
 
 # Middleware de auditoria
 app.add_middleware(AuditoriaMiddleware)
-
 
 # Rotas
 app.include_router(auth.router)
@@ -164,15 +164,3 @@ def ready_check():
 # Config Redis (ajuste conforme necessário)
 REDIS_URL = "redis://localhost:6379/0"
 redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
-
-@app.get("/live")
-def live_check():
-    """Health check do Redis"""
-    try:
-        pong = redis_client.ping()
-        if pong:
-            return {"status": "live", "redis": "ok"}
-        else:
-            return JSONResponse(status_code=503, content={"status": "unavailable", "redis": "no-pong"})
-    except Exception as e:
-        return JSONResponse(status_code=503, content={"status": "unavailable", "redis": "error", "detail": str(e)})
