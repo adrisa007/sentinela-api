@@ -81,6 +81,11 @@ class ApiService {
     return response.data;
   }
 
+  async getCronogramas() {
+    const response = await this.api.get('/cronogramas');
+    return response.data;
+  }
+
   // PNCP
   async validarFornecedor(cnpj: string) {
     const response = await this.api.get(`/pncp/fornecedor/validar/${cnpj}`);
