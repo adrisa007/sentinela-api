@@ -1,5 +1,5 @@
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
-import type { LoginRequest, LoginResponse, Usuario } from '../types';
+import type { LoginRequest, LoginResponse, Usuario, TOTPSetupResponse, TOTPVerifyRequest, TOTPVerifyResponse } from '../types';
 
 class ApiService {
   private api: AxiosInstance;
@@ -43,6 +43,17 @@ class ApiService {
 
   async getCurrentUser(): Promise<Usuario> {
     const response: AxiosResponse<Usuario> = await this.api.get('/auth/me');
+    return response.data;
+  }
+
+  // TOTP/MFA
+  async setupTOTP(): Promise<TOTPSetupResponse> {
+    const response: AxiosResponse<TOTPSetupResponse> = await this.api.post('/auth/totp/setup');
+    return response.data;
+  }
+
+  async verifyTOTPSetup(data: TOTPVerifyRequest): Promise<TOTPVerifyResponse> {
+    const response: AxiosResponse<TOTPVerifyResponse> = await this.api.post('/auth/totp/verify', data);
     return response.data;
   }
 

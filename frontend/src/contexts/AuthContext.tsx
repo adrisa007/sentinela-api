@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { AuthContextType, Usuario } from '../types';
+import type { AuthContextType, Usuario, TOTPSetupResponse, TOTPVerifyResponse } from '../types';
 import { apiService } from '../services/api';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,9 +47,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async (email: string, senha: string) => {
+  const login = async (email: string, senha: string, totpCode?: string) => {
     try {
-      const response = await apiService.login({ email, senha });
+      const response = await apiService.login({ email, senha, totp_code: totpCode });
       const { access_token, usuario } = response;
 
       setToken(access_token);
@@ -69,11 +69,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('user');
   };
 
+  const setupTOTP = async (): Promise<TOTPSetupResponse> => {
+    try {
+      return await apiService.setupTOTP();
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const verifyTOTPSetup = async (totpCode: string): Promise<TOTPVerifyResponse> => {
+    try {
+      return await apiService.verifyTOTPSetup({ totp_code: totpCode });
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     token,
     login,
     logout,
+    setupTOTP,
+    verifyTOTPSetup,
     isAuthenticated: !!user && !!token,
     isLoading,
   };

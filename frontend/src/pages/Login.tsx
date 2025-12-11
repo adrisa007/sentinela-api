@@ -6,7 +6,9 @@ import { Shield, Eye, EyeOff } from 'lucide-react';
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [totpCode, setTotpCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [requiresTOTP, setRequiresTOTP] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -22,10 +24,18 @@ const Login: React.FC = () => {
     setError('');
 
     try {
-      await login(email, senha);
+      await login(email, senha, requiresTOTP ? totpCode : undefined);
       navigate(from, { replace: true });
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Erro ao fazer login');
+      const errorMessage = err.response?.data?.detail || 'Erro ao fazer login';
+
+      // Verifica se é erro de TOTP necessário
+      if (errorMessage.includes('TOTP necessário') || errorMessage.includes('Código TOTP necessário')) {
+        setRequiresTOTP(true);
+        setError('Digite o código do seu aplicativo autenticador');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -96,6 +106,29 @@ const Login: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {requiresTOTP && (
+              <div>
+                <label htmlFor="totp" className="block text-sm font-medium text-gray-700">
+                  Código TOTP
+                </label>
+                <input
+                  id="totp"
+                  name="totp"
+                  type="text"
+                  autoComplete="one-time-code"
+                  required
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-center text-lg tracking-widest"
+                  placeholder="000000"
+                  maxLength={6}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Digite o código de 6 dígitos do seu aplicativo autenticador
+                </p>
+              </div>
+            )}
 
             {error && (
               <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-md">

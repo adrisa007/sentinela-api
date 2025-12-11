@@ -15,6 +15,22 @@ export interface Usuario {
 export interface LoginRequest {
   email: string;
   senha: string;
+  totp_code?: string;
+}
+
+export interface TOTPSetupResponse {
+  secret: string;
+  uri: string;
+  qr_code: string;
+}
+
+export interface TOTPVerifyRequest {
+  totp_code: string;
+}
+
+export interface TOTPVerifyResponse {
+  success: boolean;
+  message: string;
 }
 
 export interface LoginResponse {
@@ -26,8 +42,10 @@ export interface LoginResponse {
 export interface AuthContextType {
   user: Usuario | null;
   token: string | null;
-  login: (email: string, senha: string) => Promise<void>;
+  login: (email: string, senha: string, totpCode?: string) => Promise<void>;
   logout: () => void;
+  setupTOTP: () => Promise<TOTPSetupResponse>;
+  verifyTOTPSetup: (totpCode: string) => Promise<TOTPVerifyResponse>;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
