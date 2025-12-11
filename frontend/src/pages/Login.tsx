@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useRoleCheck } from '../hooks/useRoleCheck';
 import { Shield, Eye, EyeOff } from 'lucide-react';
 
 const Login: React.FC = () => {
@@ -13,6 +14,7 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
 
   const { login } = useAuth();
+  const { isUserBlocked } = useRoleCheck();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -25,6 +27,16 @@ const Login: React.FC = () => {
 
     try {
       await login(email, senha, requiresTOTP ? totpCode : undefined);
+
+      // Verificar se o usuário tem perfil bloqueado (ROOT ou GESTOR)
+      if (isUserBlocked()) {
+        // Fazer logout imediatamente
+        const { logout } = useAuth();
+        logout();
+        setError('Acesso negado: Usuários com perfil ROOT ou GESTOR não podem acessar o sistema através desta interface.');
+        return;
+      }
+
       navigate(from, { replace: true });
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || 'Erro ao fazer login';

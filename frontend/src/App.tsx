@@ -1,23 +1,18 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
+import RoleBasedRoute from './components/RoleBasedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 
-// Componente para proteger rotas
+// Componente para proteger rotas com bloqueio de roles
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  return (
+    <RoleBasedRoute blockedRoles={['ROOT', 'GESTOR']}>
+      {children}
+    </RoleBasedRoute>
+  );
 };
 
 // Componente principal da aplicação
