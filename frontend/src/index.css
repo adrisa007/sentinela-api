@@ -1,3 +1,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Tema corporate com cores oficiais do Sentinela */
+:root {
+  --rounded-btn: 0.5rem;
+}
+
+/* Cor primária do Sentinela (azul governamental) */
+.theme-corporate {
+  primary: #003087;
+  "primary-focus": #002766;
+  "primary-content": #ffffff;
+}

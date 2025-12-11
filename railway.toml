@@ -1,0 +1,18 @@
+[build]
+builder = "dockerfile"
+
+[deploy]
+startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+[environments]
+[environments.production]
+DATABASE_URL = "${DATABASE_URL}"
+SECRET_KEY = "${SECRET_KEY}"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+TOTP_ISSUER = "Sentinela API"
+ENVIRONMENT = "production"

@@ -7,5 +7,12 @@ export default {
   theme: {
     extend: {},
   },
-  plugins: [],
+  plugins: [require("daisyui")],
+  daisyui: {
+    themes: ["light", "dark", "corporate"], // corporate = visual perfeito para governo
+    darkTheme: "dark",
+    base: true,
+    styled: true,
+    utils: true,
+  },
 }

@@ -1,0 +1,16 @@
+[build]
+builder = "NIXPACKS"
+
+[build.nixpacks]
+buildCmd = "npm run build"
+
+[deploy]
+startCommand = "npm run preview"
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+[environments]
+[environments.production]
+VITE_API_URL = "${VITE_API_URL}"

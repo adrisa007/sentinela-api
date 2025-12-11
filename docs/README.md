@@ -144,7 +144,41 @@ Após a inicialização, é criado automaticamente:
 
 ⚠️ **IMPORTANTE**: Altere a senha padrão em produção!
 
-## 📚 API Endpoints
+## � Deploy no Railway
+
+Para fazer deploy da aplicação no Railway, siga o guia completo em [RAILWAY_DEPLOY.md](./docs/RAILWAY_DEPLOY.md).
+
+### Deploy Rápido
+```bash
+# Instalar Railway CLI
+npm install -g @railway/cli
+
+# Login
+railway login
+
+# Deploy completo (backend + frontend)
+./deploy-railway.sh all
+```
+
+### Ou passo a passo:
+```bash
+# 1. Fazer login no Railway
+./deploy-railway.sh login
+
+# 2. Inicializar projetos
+./deploy-railway.sh init
+
+# 3. Configurar variáveis de ambiente
+./deploy-railway.sh env
+
+# 4. Deploy do backend
+./deploy-railway.sh backend
+
+# 5. Deploy do frontend
+./deploy-railway.sh frontend
+```
+
+## �📚 API Endpoints
 
 ### Autenticação
 - `POST /auth/login` - Login do usuário

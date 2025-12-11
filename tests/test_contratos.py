@@ -19,13 +19,13 @@ from decimal import Decimal
 client = TestClient(app)
 
 def setup_module(module):
+    from datetime import datetime
     create_db_and_tables()
     # Cria usuário admin de teste
     with Session(engine) as session:
         # Cria entidade fictícia se não existir
         entidade = session.exec(select(Entidade).where(Entidade.id == 1)).first()
         if not entidade:
-            from datetime import datetime
             entidade = Entidade(
                 id=1,
                 cnpj="12345678000199",

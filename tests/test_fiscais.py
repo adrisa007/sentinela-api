@@ -226,9 +226,18 @@ def test_fiscais_list():
 def test_fiscais_create():
     """Testa criação de fiscal"""
     token = get_auth_token()
+    # Primeiro, vamos verificar quais usuários existem
+    users_response = client.get("/usuarios/", headers={"Authorization": f"Bearer {token}"})
+    users = users_response.json()
+    fiscal_users = [u for u in users if u["perfil"] == "FISCAL_TECNICO"]
+    
+    # Usar o último usuário fiscal disponível
+    fiscal_user = fiscal_users[-1] if fiscal_users else None
+    assert fiscal_user, "Nenhum usuário fiscal encontrado"
+    
     fiscal_data = {
-        "contrato_id": 3,  # Terceiro contrato
-        "usuario_id": 4,  # ID do terceiro usuário fiscal criado no setup
+        "contrato_id": 1,  # Primeiro contrato
+        "usuario_id": fiscal_user["id"],  # Usar ID real do usuário fiscal
         "tipo_fiscal": "SUPLENTE",
         "data_designacao": "2025-01-15",
         "portaria": f"PORT-CREATE-{int(datetime.utcnow().timestamp())}/2025"  # Portaria única
@@ -238,7 +247,6 @@ def test_fiscais_create():
     data = response.json()
     assert data["tipo_fiscal"] == fiscal_data["tipo_fiscal"]
     assert data["portaria"] == fiscal_data["portaria"]
-    assert data["tipo_fiscal"] == fiscal_data["tipo_fiscal"]
 
 def test_fiscais_read():
     """Testa leitura de fiscal específico"""
@@ -249,15 +257,15 @@ def test_fiscais_read():
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == fiscal_id
-    assert data["tipo_fiscal"] == "TITULAR"
+    assert data["tipo_fiscal"] == "SUPLENTE"
 
 def test_fiscais_delete():
     """Testa exclusão de fiscal"""
     token = get_auth_token()
     # Cria um fiscal específico para teste de delete
     fiscal_data = {
-        "contrato_id": 3,  # Terceiro contrato
-        "usuario_id": 3,  # Segundo usuário fiscal
+        "contrato_id": 2,  # Segundo contrato
+        "usuario_id": 2,  # Primeiro usuário fiscal
         "tipo_fiscal": "TITULAR",
         "data_designacao": "2025-01-05",
         "portaria": f"PORT-DELETE-{int(datetime.utcnow().timestamp())}/2025"  # Portaria única
