@@ -6,7 +6,7 @@ export interface Usuario {
   email: string;
   perfil: 'ROOT' | 'GESTOR' | 'FISCAL_TECNICO' | 'FISCAL_ADM' | 'APOIO' | 'AUDITOR';
   entidade_id: number | null;
-  totp_habilitado: boolean;
+  totp_enabled: boolean;
   ativo: boolean;
   created_at?: string;
   updated_at?: string;
