@@ -6,7 +6,7 @@ class ApiService {
 
   constructor() {
     this.api = axios.create({
-      baseURL: 'http://localhost:8000',
+      baseURL: 'https://urban-fortnight-v649p7xwgxp269j9-8000.app.github.dev',
       headers: {
         'Content-Type': 'application/json',
       },
